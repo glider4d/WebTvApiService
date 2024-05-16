@@ -1,0 +1,6 @@
+@WebTvApiService_HostAddress = http://localhost:5122
+
+GET {{WebTvApiService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

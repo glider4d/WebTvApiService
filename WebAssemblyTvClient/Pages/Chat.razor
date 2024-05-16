@@ -1,0 +1,69 @@
+﻿@page "/chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@inject ILogger<Chat> logger
+
+
+<h3>Chat</h3>
+
+@if (IsConnected)
+{
+    <input type="text" @bind="userInput" />
+    <input type="text" @bind="messageInput" />
+    <button @onclick="Send">Send</button>
+    <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+
+    <ul id="messagesList">
+        @foreach (var message in messages)
+        {
+            <li>@message</li>
+        }
+    </ul>
+}
+else
+{
+    <span>Connecting...</span>
+}
+
+@code {
+    private HubConnection hubConnection;
+ 
+    private List<string> messages = new List<string>();
+    private string userInput;
+    private string messageInput;
+
+    private void IncrementCount()
+    {
+        Console.WriteLine("IncrementCount");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        hubConnection = new HubConnectionBuilder().WithUrl("http://localhost:5122/commandub").Build();
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            var endcodedMsg = $"{user}:: {message}";
+            logger.LogInformation("ReceiveMessage {endcodedMsg} {dateTime}", endcodedMsg, DateTime.Now);
+            messages.Add(endcodedMsg);
+            StateHasChanged();
+        });
+
+        hubConnection.On<string>("Timer", (message) => {
+            messages.Add(message);
+            StateHasChanged();
+        });
+
+
+
+        await hubConnection.StartAsync();
+
+    }
+    public Task Send()
+    {
+        return hubConnection.SendAsync("SendMessage", userInput, messageInput);
+    }
+
+    public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
+}
